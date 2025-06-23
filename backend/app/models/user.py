@@ -1,37 +1,33 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, EmailStr
+from enum import Enum
 from datetime import datetime
+from typing import Optional
 
-class Address(BaseModel):
-    street: str
-    city: str
-    country: str
+class UserStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
 
-class UserCreate(BaseModel):
-    name: str
-    email: str
-    phone: str
-    password: str
-    address: Address
-    role: str
+class UserBase(BaseModel):
+    email: EmailStr  # Đổi từ Email thành email
+    FullName: str
+    Password: str
+
+class UserCreate(UserBase):
+    pass
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    address: Optional[Address] = None
-    role: Optional[str] = None
+    FullName: Optional[str] = None
+    Password: Optional[str] = None
+    Status: Optional[UserStatus] = None
+    isAdmin: Optional[bool] = None
 
-class UserResponse(BaseModel):
-    id: str
-    name: str
-    email: str
-    phone: str
-    password: Optional[str] = None
-    address: Address
-    role: str
-    created_at: datetime
-    updated_at: datetime
+class UserResponse(UserBase):
+    UserID: int
+    Status: UserStatus
+    isAdmin: bool
+    CreatedAt: datetime
+    UpdatedAt: datetime
 
     class Config:
         from_attributes = True
+        json_encoders = {datetime: lambda v: v.isoformat()}

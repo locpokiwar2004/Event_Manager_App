@@ -1,60 +1,44 @@
-from pydantic import BaseModel, field_serializer
-from typing import List, Optional
+from pydantic import BaseModel
+from enum import Enum
 from datetime import datetime
+from typing import Optional
 
-class Coordinates(BaseModel):
-    lat: Optional[float] = None
-    lng: Optional[float] = None
+class EventStatus(str, Enum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    CANCELLED = "cancelled"
 
-class Location(BaseModel):
-    address: str
-    city: str
-    country: str
-    coordinates: Optional[Coordinates] = None
+class EventBase(BaseModel):
+    Title: str
+    Description: str
+    Category: str
+    Location: str
+    Img: Optional[str] = None
+    StartTime: datetime
+    EndTime: datetime
+    Capacity: int
+    OrganizerID: int
 
-class TicketType(BaseModel):
-    type: str
-    price: float
-    quantity: int
-    available: int
-
-class EventCreate(BaseModel):
-    title: str
-    category: str
-    description: str
-    start_time: datetime
-    end_time: datetime
-    location: Location
-    ticket_types: List[TicketType]
-    status: str
-    organizer_id: str
-    image_url: str
+class EventCreate(EventBase):
+    pass
 
 class EventUpdate(BaseModel):
-    title: Optional[str] = None
-    category: Optional[str] = None
-    description: Optional[str] = None
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
-    location: Optional[Location] = None
-    ticket_types: Optional[List[TicketType]] = None
-    status: Optional[str] = None
-    image_url: Optional[str] = None
+    Title: Optional[str] = None
+    Description: Optional[str] = None
+    Category: Optional[str] = None
+    Location: Optional[str] = None
+    Img: Optional[str] = None
+    StartTime: Optional[datetime] = None
+    EndTime: Optional[datetime] = None
+    Capacity: Optional[int] = None
+    Status: Optional[EventStatus] = None
 
-class EventResponse(BaseModel):
-    id: str
-    title: str
-    category: str
-    description: str
-    start_time: datetime 
-    end_time: datetime   
-    location: Location
-    ticket_types: List[TicketType]
-    status: str
-    organizer_id: str
-    image_url: str
-    created_at: datetime  
-    updated_at: datetime 
+class EventResponse(EventBase):
+    EventID: int
+    Status: EventStatus
+    CreatedAt: datetime
+    UpdatedAt: datetime
 
     class Config:
         from_attributes = True
+        json_encoders = {datetime: lambda v: v.isoformat()}

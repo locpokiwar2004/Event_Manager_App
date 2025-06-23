@@ -1,12 +1,15 @@
 from fastapi import FastAPI, Depends
-from app.api.v1 import users, events, ticket_orders, payments
+from app.api.v1 import users, events, tickets, orders, attendances, order_items, payments
 from app.config.database import get_db
 
 app = FastAPI(title="Event Management API")
 
 app.include_router(users.router)
 app.include_router(events.router)
-app.include_router(ticket_orders.router)
+app.include_router(tickets.router)
+app.include_router(orders.router)
+app.include_router(attendances.router)
+app.include_router(order_items.router)
 app.include_router(payments.router)
 
 @app.get("/")

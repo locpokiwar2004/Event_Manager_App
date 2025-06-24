@@ -723,6 +723,10 @@ class _HomePageState extends State<HomePage> {
             label: 'Vé của tôi',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Tìm kiếm',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Tài khoản',
           ),

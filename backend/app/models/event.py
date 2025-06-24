@@ -2,12 +2,10 @@ from pydantic import BaseModel
 from enum import Enum
 from datetime import datetime
 from typing import Optional
-
 class EventStatus(str, Enum):
     DRAFT = "draft"
     PUBLISHED = "published"
     CANCELLED = "cancelled"
-
 class EventBase(BaseModel):
     Title: str
     Description: str
@@ -18,10 +16,8 @@ class EventBase(BaseModel):
     EndTime: datetime
     Capacity: int
     OrganizerID: int
-
 class EventCreate(EventBase):
     pass
-
 class EventUpdate(BaseModel):
     Title: Optional[str] = None
     Description: Optional[str] = None
@@ -32,13 +28,11 @@ class EventUpdate(BaseModel):
     EndTime: Optional[datetime] = None
     Capacity: Optional[int] = None
     Status: Optional[EventStatus] = None
-
 class EventResponse(EventBase):
     EventID: int
     Status: EventStatus
     CreatedAt: datetime
     UpdatedAt: datetime
-
     class Config:
         from_attributes = True
         json_encoders = {datetime: lambda v: v.isoformat()}

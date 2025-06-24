@@ -11,13 +11,16 @@ class UserBase(BaseModel):
     email: EmailStr  # Đổi từ Email thành email
     FullName: str
     Password: str
+    Address: str
+    Phone: int
 
 class UserCreate(UserBase):
     pass
-
 class UserUpdate(BaseModel):
     FullName: Optional[str] = None
     Password: Optional[str] = None
+    Address: Optional[str] = None
+    Phone: Optional[str] = None
     Status: Optional[UserStatus] = None
     isAdmin: Optional[bool] = None
 
@@ -27,7 +30,6 @@ class UserResponse(UserBase):
     isAdmin: bool
     CreatedAt: datetime
     UpdatedAt: datetime
-
     class Config:
         from_attributes = True
         json_encoders = {datetime: lambda v: v.isoformat()}

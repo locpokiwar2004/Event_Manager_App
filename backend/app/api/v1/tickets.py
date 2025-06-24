@@ -20,7 +20,6 @@ async def get_next_ticket_id(db: AsyncIOMotorDatabase) -> int:
         return_document=True
     )
     return counter["seq"]
-
 def convert_decimals_to_float(obj):
     """Chuyển đổi tất cả giá trị Decimal trong dict thành float."""
     if isinstance(obj, dict):

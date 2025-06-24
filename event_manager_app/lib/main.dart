@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 // import các screen bạn đã tạo
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-
+import 'screens/buy_a_ticket.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,11 +22,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       // khởi đầu ở màn hình Login
-      initialRoute: '/login',
+      initialRoute: '/checkout',
       routes: {
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
-
+        '/checkout': (_) => const BuyATicket(),
       },
     );
   }

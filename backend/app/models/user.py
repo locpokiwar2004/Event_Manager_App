@@ -11,11 +11,16 @@ class UserBase(BaseModel):
     email: EmailStr  # Đổi từ Email thành email
     FullName: str
     Password: str
-    Address: str
-    Phone: int
+    Address: Optional[str] = None
+    Phone: Optional[str] = None
 
 class UserCreate(UserBase):
     pass
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
 class UserUpdate(BaseModel):
     FullName: Optional[str] = None
     Password: Optional[str] = None

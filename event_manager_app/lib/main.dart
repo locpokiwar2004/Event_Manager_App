@@ -1,10 +1,11 @@
+import 'package:event_manager_app/server_locator.dart';
 import 'package:flutter/material.dart';
-import './screens/signup_page.dart';
-import './screens/login_page.dart';
-import './screens/home_page.dart';
-import './screens/buy_a_ticket.dart';
+import 'screens/signup_screen.dart';
+import 'screens/login_screen.dart';
+import './screens/home_screen.dart';
 
 void main() {
+  setupServerLocator();
   runApp(EventApp());
 }
 
@@ -18,11 +19,11 @@ class EventApp extends StatelessWidget {
         fontFamily: 'Roboto',
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: HomePage(),
+      home: HomeScreen(),
       routes: {
-        '/login': (context) => LoginPage(),
-        '/signup': (context) => SignUpPage(),
-        '/home': (context) => HomePage(),
+        '/login': (context) => LoginScreen(),
+        '/signup': (context) => SignUpScreen(),
+        '/home': (context) => HomeScreen(),
         //buy ticket nên là dạng pop-up sasa
       },
       debugShowCheckedModeBanner: false,

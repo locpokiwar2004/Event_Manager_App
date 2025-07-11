@@ -16,6 +16,13 @@ router = APIRouter(prefix="/users", tags=["Users"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
 
+def create_access_token(data: dict, expires_delta: timedelta):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
 async def get_next_user_id(db: AsyncIOMotorDatabase) -> int:
     counter = await db.counters.find_one_and_update(
         {"_id": "user_id"},
@@ -174,9 +181,44 @@ async def google_signin(email: str, name: Optional[str] = None, db: AsyncIOMotor
         logger.error(f"Error during Google sign-in: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error during Google sign-in: {str(e)}")
 
-def create_access_token(data: dict, expires_delta: timedelta):
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expires_delta
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+@router.post("/register/")
+async def register(user: UserCreate, db: AsyncIOMotorDatabase = Depends(get_db)):
+    try:
+        # Kiểm tra email đã tồn tại
+        existing_user = await db.users.find_one({"email": user.email})
+        if existing_user:
+            logger.warning(f"Email already exists during registration: {user.email}")
+            raise HTTPException(status_code=400, detail="Email already exists")
+        
+        # Tạo user mới
+        user_id = await get_next_user_id(db)
+        user_dict = user.dict()
+        user_dict["UserID"] = user_id
+        user_dict["Password"] = pwd_context.hash(user_dict["Password"])
+        user_dict["Status"] = UserStatus.ACTIVE
+        user_dict["isAdmin"] = False
+        user_dict["CreatedAt"] = datetime.now(timezone.utc).isoformat()
+        user_dict["UpdatedAt"] = datetime.now(timezone.utc).isoformat()
+        
+        # Insert vào MongoDB
+        result = await db.users.insert_one(user_dict)
+        logger.info(f"Registered new user with ID: {result.inserted_id}, UserID: {user_id}")
+        
+        # Tạo access token cho user mới
+        access_token_expires = timedelta(minutes=30)
+        access_token = create_access_token(
+            data={"sub": str(user_id)}, expires_delta=access_token_expires
+        )
+        
+        logger.info(f"User registered successfully: UserID {user_id}")
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer",
+            "user_id": user_id,
+            "message": "User registered successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during registration: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error during registration: {str(e)}")

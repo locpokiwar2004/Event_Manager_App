@@ -1,14 +1,19 @@
 // lib/login_page.dart
+import 'package:event_manager_app/data/models/login_req.dart';
+import 'package:event_manager_app/data/models/auth_response.dart';
+import 'package:event_manager_app/domain/usecases/login.dart';
+import 'package:event_manager_app/server_locator.dart';
+import 'package:event_manager_app/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'signup_page.dart';
-import 'home_page.dart';
+import 'signup_screen.dart';
+import 'home_screen.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginScreen extends StatefulWidget {
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -280,7 +285,7 @@ class _LoginPageState extends State<LoginPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SignUpPage()),
+                MaterialPageRoute(builder: (context) => SignUpScreen()),
               );
             },
             child: Text(
@@ -302,25 +307,65 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = true;
       });
 
-      // Simulate API call
-      await Future.delayed(Duration(seconds: 2));
+      try {
+        var result = await sl<LoginUsecase>().call(
+          LoginReqParams(
+            email: _emailController.text,
+            password: _passwordController.text,
+          ),
+        );
 
-      setState(() {
-        _isLoading = false;
-      });
+        setState(() {
+          _isLoading = false;
+        });
 
-      // Navigate to home page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
+        result.fold(
+          (error) {
+            // Handle error
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(error.toString()),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          },
+          (success) {
+            // Handle success - save user data
+            if (success is AuthResponse) {
+              AuthService.saveUserData(
+                token: success.token ?? '',
+                email: success.user?.email ?? '',
+                name: success.user?.fullName ?? '',
+                userId: success.user?.id?.toString() ?? '',
+              );
+            }
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Login successful!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 3),
+              ),
+            );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Login successful!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+            // Navigate back with success result
+            Navigator.pop(context, true);
+          },
+        );
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('An unexpected error occurred: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 

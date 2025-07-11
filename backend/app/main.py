@@ -1,9 +1,20 @@
 from fastapi import FastAPI, Depends
-from app.api.v1 import users, events, tickets, orders, attendances, order_items, payments
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1 import users, events, tickets, orders, attendances, order_items, payments, auth
 from app.config.database import get_db
 
 app = FastAPI(title="Event Management API")
 
+# Add CORS middleware for web browsers
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(events.router)
 app.include_router(tickets.router)

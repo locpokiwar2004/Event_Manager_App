@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import './my_ticket_screen.dart';
 import './account_screen.dart';
-import './search_page.dart';
+import './search_screen.dart';
 import './event_detail_page.dart';
 
-class HomePage extends StatefulWidget {
+class HomeScreen extends StatefulWidget {
   @override
-  _HomePageState createState() => _HomePageState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   late PageController _pageController;
   int _currentBannerIndex = 0;
@@ -155,7 +155,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _pageController = PageController();
     _pages = [
-      _buildHomePage(),
+      _buildHomeScreen(),
       MyTicketPage(),
       SearchPage(allEvents: [...hotEvents, ...weekendEvents]),
       AccountPage(),
@@ -168,7 +168,7 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  Widget _buildHomePage() {
+  Widget _buildHomeScreen() {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,7 +297,7 @@ class _HomePageState extends State<HomePage> {
           ),
           
           SizedBox(
-            height: 300,
+            height: 320, // Increased height to accommodate content
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -436,103 +436,103 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        event['category'] as String,
-                        style: const TextStyle(
-                          color: Colors.orange,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+            // Fixed: Removed Expanded and used flexible layout
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min, // Added this
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      event['name'] as String,
+                    child: Text(
+                      event['category'] as String,
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
+                        color: Colors.orange,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today, color: Colors.grey[400], size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          event['date'] as String,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    event['name'] as String,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, color: Colors.grey[400], size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        event['date'] as String,
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.location_on, color: Colors.grey[400], size: 14),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          event['venue'] as String,
                           style: TextStyle(
                             color: Colors.grey[400],
                             fontSize: 12,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, color: Colors.grey[400], size: 14),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            event['venue'] as String,
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            event['price'] as String,
-                            style: const TextStyle(
-                              color: Colors.orange,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12), // Fixed spacing
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          event['price'] as String,
+                          style: const TextStyle(
                             color: Colors.orange,
-                            borderRadius: BorderRadius.circular(20),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
-                          child: const Text(
-                            'Đặt vé',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Đặt vé',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],

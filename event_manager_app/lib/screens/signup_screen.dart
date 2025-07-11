@@ -1,20 +1,21 @@
-// lib/signup_page.dart
+import 'package:event_manager_app/data/models/auth_response.dart';
+import 'package:event_manager_app/data/models/signup_req.dart';
+import 'package:event_manager_app/domain/usecases/signup.dart';
+import 'package:event_manager_app/server_locator.dart';
+import 'package:event_manager_app/core/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'login_page.dart';
-import 'home_page.dart';
+import 'login_screen.dart';
 
-class SignUpPage extends StatefulWidget {
+class SignUpScreen extends StatefulWidget {
   @override
-  _SignUpPageState createState() => _SignUpPageState();
+  _SignUpScreenState createState() => _SignUpScreenState();
 }
 
-class _SignUpPageState extends State<SignUpPage> {
+class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _birthDateController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -78,20 +79,6 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           SizedBox(height: 16),
                           
-                          // Birth Date Field
-                          _buildDateField(),
-                          SizedBox(height: 16),
-                          
-                          // Phone Number Field
-                          _buildTextField(
-                            label: 'Phone Number',
-                            controller: _phoneController,
-                            hintText: '(84) 726-0592',
-                            keyboardType: TextInputType.phone,
-                            validator: _validatePhone,
-                          ),
-                          SizedBox(height: 16),
-                          
                           // Password Field
                           _buildPasswordField(),
                           SizedBox(height: 32),
@@ -134,7 +121,7 @@ class _SignUpPageState extends State<SignUpPage> {
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => LoginPage()),
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
                 );
               },
               child: Text(
@@ -175,38 +162,6 @@ class _SignUpPageState extends State<SignUpPage> {
           keyboardType: keyboardType,
           decoration: _buildInputDecoration(hintText: hintText),
           validator: validator,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDateField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Birth of date',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-        SizedBox(height: 8),
-        TextFormField(
-          controller: _birthDateController,
-          readOnly: true,
-          decoration: _buildInputDecoration(
-            hintText: '18/03/2025',
-            suffixIcon: Icon(Icons.calendar_today, color: Colors.grey),
-          ),
-          onTap: _selectBirthDate,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select your birth date';
-            }
-            return null;
-          },
         ),
       ],
     );
@@ -316,16 +271,6 @@ class _SignUpPageState extends State<SignUpPage> {
     return null;
   }
 
-  String? _validatePhone(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your phone number';
-    }
-    if (value.length < 10) {
-      return 'Please enter a valid phone number';
-    }
-    return null;
-  }
-
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter a password';
@@ -339,61 +284,72 @@ class _SignUpPageState extends State<SignUpPage> {
     return null;
   }
 
-  // Event handlers
-  void _selectBirthDate() async {
-    DateTime? date = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now().subtract(Duration(days: 365 * 18)),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.orange,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    
-    if (date != null) {
-      _birthDateController.text = 
-        "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
-    }
-  }
-
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
-      // Simulate API call
-      await Future.delayed(Duration(seconds: 2));
+      try {
+        var result = await sl<SingupUsecase>().call(
+          SignupReqParams(
+            FullName: _fullNameController.text,
+            email: _emailController.text,
+            Password: _passwordController.text,
+          ),
+        );
 
-      setState(() {
-        _isLoading = false;
-      });
+        setState(() {
+          _isLoading = false;
+        });
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Registration successful! Welcome to Event Manager!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
+        result.fold(
+          (error) {
+            // Handle error
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(error.toString()),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          },
+          (success) {
+            // Handle success - save user data
+            if (success is AuthResponse) {
+              AuthService.saveUserData(
+                token: success.token ?? '',
+                email: success.user?.email ?? '',
+                name: success.user?.fullName ?? '',
+                userId: success.user?.id?.toString() ?? '',
+              );
+            }
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Registration successful! Welcome to Event Manager!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 3),
+              ),
+            );
 
-      // Navigate to home page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
+            // Navigate back to previous screen with success result
+            Navigator.pop(context, true);
+          },
+        );
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('An unexpected error occurred: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -401,9 +357,7 @@ class _SignUpPageState extends State<SignUpPage> {
   void dispose() {
     _fullNameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     _passwordController.dispose();
-    _birthDateController.dispose();
     super.dispose();
   }
 }

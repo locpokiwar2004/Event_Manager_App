@@ -91,8 +91,8 @@ class _CreateTicketsScreenState extends State<CreateTicketsScreen> {
           ),
         );
         
-        // Navigate back to organizer dashboard
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        // Return success result to CreateEventTab
+        Navigator.of(context).pop(true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -100,6 +100,8 @@ class _CreateTicketsScreenState extends State<CreateTicketsScreen> {
             backgroundColor: Colors.orange,
           ),
         );
+        // Return partial success
+        Navigator.of(context).pop(successCount > 0);
       }
     } catch (e) {
       setState(() {

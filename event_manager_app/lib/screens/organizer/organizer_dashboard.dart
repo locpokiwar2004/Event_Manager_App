@@ -1061,7 +1061,7 @@ class _CreateEventTabState extends State<CreateEventTab> {
           );
 
           // Navigate to create tickets screen
-          Navigator.push(
+          final ticketsResult = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => CreateTicketsScreen(
@@ -1070,16 +1070,24 @@ class _CreateEventTabState extends State<CreateEventTab> {
             ),
           );
 
-          // Clear form
-          _titleController.clear();
-          _descriptionController.clear();
-          _locationController.clear();
-          _capacityController.clear();
-          setState(() {
-            _selectedDate = null;
-            _selectedTime = null;
-            _selectedCategory = 'Technology';
-          });
+          // After tickets are created, navigate to My Events tab
+          if (ticketsResult == true || ticketsResult == null) {
+            // Clear form
+            _titleController.clear();
+            _descriptionController.clear();
+            _locationController.clear();
+            _capacityController.clear();
+            setState(() {
+              _selectedDate = null;
+              _selectedTime = null;
+              _selectedCategory = 'Technology';
+            });
+            
+            // Navigate to My Events tab (index 2)
+            if (widget.onTabChanged != null) {
+              widget.onTabChanged!(2);
+            }
+          }
         } else {
           // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1544,7 +1552,7 @@ class _ManageEventsTabState extends State<ManageEventsTab> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                await _performDeleteEvent(event['EventID']);
+                await _performDeleteEvent(event['_id'] ?? event['EventID'].toString());
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -1727,7 +1735,7 @@ class _ManageEventsTabState extends State<ManageEventsTab> {
                     if (_editFormKey.currentState!.validate()) {
                       Navigator.of(context).pop();
                       await _performUpdateEvent(
-                        event['EventID'],
+                        event['_id'] ?? event['EventID'].toString(),
                         _editTitleController.text.trim(),
                         _editDescriptionController.text.trim(),
                         _editSelectedCategory,

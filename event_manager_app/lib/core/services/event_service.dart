@@ -22,15 +22,14 @@ class EventService {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'title': title,
-          'description': description,
-          'category': category,
-          'location': location,
-          'date': date,
-          'time': time,
-          'capacity': capacity,
-          'price': price,
-          'organizer_id': organizerId,
+          'Title': title,
+          'Description': description,
+          'Category': category,
+          'Location': location,
+          'StartTime': '${date}T${time}:00',
+          'EndTime': '${date}T${time}:00', // Same as start time for now
+          'Capacity': capacity,
+          'OrganizerID': organizerId,
         }),
       );
 
@@ -39,24 +38,10 @@ class EventService {
 
       if (response.statusCode == 200) {
         final eventData = jsonDecode(response.body);
-        // Convert to expected format for CreateTicketsScreen
-        final convertedEvent = {
-          'EventID': eventData['id'],
-          'Title': eventData['title'],
-          'Description': eventData['description'],
-          'Category': eventData['category'],
-          'Location': eventData['location'],
-          'StartTime': '${eventData['date']}T${eventData['time']}:00',
-          'EndTime': '${eventData['date']}T${eventData['time']}:00',
-          'Capacity': eventData['capacity'],
-          'Price': eventData['price'],
-          'OrganizerID': eventData['organizer_id'],
-          'CreatedAt': eventData['created_at'],
-        };
-        
+        // Response already in correct format from new API
         return {
           'success': true,
-          'data': convertedEvent,
+          'data': eventData,
           'message': 'Event created successfully!'
         };
       } else {
@@ -155,8 +140,13 @@ class EventService {
         final List<dynamic> events = jsonDecode(response.body);
         // Convert API format to match expected format
         final List<Map<String, dynamic>> convertedEvents = events.map((event) {
+          // Use proper ID format - backend returns EventID as int, but update/delete needs string
+          final eventId = event['EventID'] ?? event['id'];
+          final eventIdString = eventId?.toString() ?? '';
+          
           return {
-            'EventID': event['EventID'] ?? event['id'], // Handle both formats
+            'EventID': eventId, // Keep as original format for display
+            '_id': eventIdString, // Store string ID for update/delete operations
             'Title': event['Title'] ?? event['title'],
             'Description': event['Description'] ?? event['description'],
             'Category': event['Category'] ?? event['category'],

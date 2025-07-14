@@ -42,6 +42,7 @@ async def create_ticket(ticket: TicketCreate, db: AsyncIOMotorDatabase = Depends
         # Tạo ticket mới
         ticket_dict = ticket.dict()
         ticket_dict["TicketID"] = await get_next_ticket_id(db)
+        ticket_dict["QuantitySold"] = 0  # Khởi tạo số lượng đã bán = 0
         ticket_dict["CreatedAt"] = datetime.now(timezone.utc).isoformat()
         ticket_dict["UpdatedAt"] = datetime.now(timezone.utc).isoformat()
         
@@ -68,7 +69,15 @@ async def get_tickets(db: AsyncIOMotorDatabase = Depends(get_db)):
     try:
         tickets = await db.tickets.find().to_list(100)
         logger.info(f"Retrieved {len(tickets)} tickets")
-        return [TicketResponse(**ticket) for ticket in tickets]
+        
+        # Đảm bảo tất cả tickets có trường QuantitySold
+        processed_tickets = []
+        for ticket in tickets:
+            if "QuantitySold" not in ticket:
+                ticket["QuantitySold"] = 0
+            processed_tickets.append(ticket)
+        
+        return [TicketResponse(**ticket) for ticket in processed_tickets]
     except Exception as e:
         logger.error(f"Error retrieving tickets: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error retrieving tickets: {str(e)}")

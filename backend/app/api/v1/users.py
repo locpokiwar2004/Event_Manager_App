@@ -73,6 +73,11 @@ async def get_user(user_id: int, db: AsyncIOMotorDatabase = Depends(get_db)):
         if not user:
             logger.warning(f"User not found: UserID {user_id}")
             raise HTTPException(status_code=404, detail="User not found")
+        
+        # Convert Phone to string if it's int
+        if user.get('Phone') and isinstance(user['Phone'], int):
+            user['Phone'] = str(user['Phone'])
+            
         logger.info(f"Retrieved user: UserID {user_id}")
         return UserResponse(**user)
     except Exception as e:
@@ -84,6 +89,12 @@ async def get_users(db: AsyncIOMotorDatabase = Depends(get_db)):
     try:
         users = await db.users.find().to_list(100)
         logger.info(f"Retrieved {len(users)} users")
+        
+        # Convert Phone to string if it's int
+        for user in users:
+            if user.get('Phone') and isinstance(user['Phone'], int):
+                user['Phone'] = str(user['Phone'])
+        
         return [UserResponse(**user) for user in users]
     except Exception as e:
         logger.error(f"Error retrieving users: {str(e)}")

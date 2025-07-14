@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:event_manager_app/core/constants/api_url.dart';
 
 import 'interceptors.dart';
 
@@ -7,6 +8,7 @@ class DioClient {
   late final Dio _dio;
   DioClient(): _dio = Dio(
     BaseOptions(
+      baseUrl: ApiUrl.baseUrl,
       headers: {
         'Content-Type': 'application/json; charset=UTF-8'
       },
@@ -15,6 +17,9 @@ class DioClient {
       receiveTimeout: const Duration(seconds: 10)
     ),
   )..interceptors.addAll([LoggerInterceptor()]);
+
+  // Getter để truy cập dio instance
+  Dio get dio => _dio;
 
   // GET METHOD
   Future < Response > get(
@@ -77,6 +82,33 @@ class DioClient {
     }) async {
     try {
       final Response response = await _dio.put(
+        url,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+      );
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // PATCH METHOD
+  Future < Response > patch(
+    String url, {
+      dynamic data,
+      Map < String,
+      dynamic > ? queryParameters,
+      Options ? options,
+      CancelToken ? cancelToken,
+      ProgressCallback ? onSendProgress,
+      ProgressCallback ? onReceiveProgress,
+    }) async {
+    try {
+      final Response response = await _dio.patch(
         url,
         data: data,
         queryParameters: queryParameters,

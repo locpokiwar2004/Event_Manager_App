@@ -1,0 +1,16 @@
+<svg width="400" height="220" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#11998e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38ef7d;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="220" fill="url(#grad3)"/>
+  <circle cx="320" cy="180" r="40" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="360" cy="160" r="30" fill="rgba(255,255,255,0.15)"/>
+  <circle cx="280" cy="150" r="25" fill="rgba(255,255,255,0.2)"/>
+  <path d="M 240 180 Q 320 160 400 200 L 400 220 L 240 220 Z" fill="rgba(255,255,255,0.1)"/>
+  <text x="30" y="60" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white">Công Nghệ</text>
+  <text x="30" y="90" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white">Tương Lai</text>
+  <text x="30" y="130" font-family="Arial, sans-serif" font-size="16" fill="white">Khám phá những điều kỳ diệu</text>
+</svg>

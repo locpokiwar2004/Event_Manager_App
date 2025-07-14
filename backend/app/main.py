@@ -14,14 +14,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(events.router)
-app.include_router(tickets.router)
-app.include_router(orders.router)
-app.include_router(attendances.router)
-app.include_router(order_items.router)
-app.include_router(payments.router)
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
+app.include_router(events.router, prefix="/api/v1")
+app.include_router(tickets.router, prefix="/api/v1")
+app.include_router(orders.router, prefix="/api/v1")
+app.include_router(attendances.router, prefix="/api/v1")
+app.include_router(order_items.router, prefix="/api/v1")
+app.include_router(payments.router, prefix="/api/v1")
 
 @app.get("/")
 async def root():

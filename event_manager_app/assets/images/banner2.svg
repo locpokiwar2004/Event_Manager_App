@@ -1,0 +1,16 @@
+<svg width="400" height="220" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="220" fill="url(#grad2)"/>
+  <circle cx="60" cy="40" r="35" fill="rgba(255,255,255,0.15)"/>
+  <circle cx="100" cy="70" r="25" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="40" cy="90" r="20" fill="rgba(255,255,255,0.2)"/>
+  <path d="M 0 140 Q 80 120 120 160 L 120 220 L 0 220 Z" fill="rgba(255,255,255,0.1)"/>
+  <text x="30" y="60" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white">Âm Nhạc</text>
+  <text x="30" y="90" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white">Đỉnh Cao</text>
+  <text x="30" y="130" font-family="Arial, sans-serif" font-size="16" fill="white">Trải nghiệm âm nhạc đầy cảm xúc</text>
+</svg>

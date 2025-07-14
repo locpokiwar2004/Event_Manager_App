@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../presentation/cubit/ticket_cubit.dart';
+import '../domain/entities/ticket.dart';
+import '../domain/entities/event.dart';
+import '../widgets/ticket_quantity_selector.dart';
 
 class EventDetailPage extends StatefulWidget {
-  final Map<String, dynamic> event;
+  final EventEntity event; // Changed from Map to EventEntity
 
   const EventDetailPage({Key? key, required this.event}) : super(key: key);
 
@@ -10,32 +15,49 @@ class EventDetailPage extends StatefulWidget {
 }
 
 class _EventDetailPageState extends State<EventDetailPage> {
-  int selectedTicketIndex = 0;
   bool isFavorite = false;
+  late TicketCubit _ticketCubit;
+  List<TicketEntity> tickets = [];
+  Map<int, int> ticketQuantities = {}; // TicketID -> Quantity
 
-  final List<Map<String, dynamic>> ticketTypes = [
-    {
-      'type': 'General Admission',
-      'price': 45,
-      'description': 'Standard entry with access to all main areas',
-      'available': 120,
-      'benefits': ['Main event access', 'Standard seating', 'Basic refreshments']
-    },
-    {
-      'type': 'VIP',
-      'price': 89,
-      'description': 'Premium experience with exclusive benefits',
-      'available': 45,
-      'benefits': ['Front row seating', 'Meet & greet', 'Premium refreshments', 'VIP lounge access']
-    },
-    {
-      'type': 'Premium',
-      'price': 199,
-      'description': 'Ultimate experience with all amenities',
-      'available': 15,
-      'benefits': ['Best seating', 'Backstage access', 'Exclusive merchandise', 'Complimentary drinks', 'Private entrance']
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _ticketCubit = TicketCubit.create();
+    // Load tickets for this event
+    _ticketCubit.getEventTickets(widget.event.eventId);
+  }
+
+  @override
+  void dispose() {
+    _ticketCubit.close();
+    super.dispose();
+  }
+
+  void _onTicketQuantityChanged(int ticketId, int quantity) {
+    setState(() {
+      if (quantity > 0) {
+        ticketQuantities[ticketId] = quantity;
+      } else {
+        ticketQuantities.remove(ticketId);
+      }
+    });
+  }
+
+  double get totalAmount {
+    double total = 0;
+    for (var entry in ticketQuantities.entries) {
+      final ticket = tickets.firstWhere((t) => t.ticketId == entry.key);
+      total += ticket.price * entry.value;
+    }
+    return total;
+  }
+
+  int get totalTickets {
+    return ticketQuantities.values.fold(0, (sum, quantity) => sum + quantity);
+  }
+
+
 
   final Map<String, dynamic> organizer = {
     'name': 'EventPro Productions',
@@ -53,28 +75,31 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildEventHeader(),
-                _buildEventDetails(),
-                _buildDescription(),
-                _buildTicketTypes(),
-                _buildOrganizerInfo(),
-                _buildLocation(),
-                const SizedBox(height: 100), // Space for bottom button
-              ],
+    return BlocProvider.value(
+      value: _ticketCubit,
+      child: Scaffold(
+        backgroundColor: Colors.grey[900],
+        body: CustomScrollView(
+          slivers: [
+            _buildAppBar(),
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildEventHeader(),
+                  _buildEventDetails(),
+                  _buildDescription(),
+                  _buildTicketTypesFromAPI(),
+                  _buildOrganizerInfo(),
+                  _buildLocation(),
+                  const SizedBox(height: 100), // Space for bottom button
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+        bottomNavigationBar: _buildBottomBar(),
       ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
@@ -110,11 +135,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 ),
               ),
               Center(
-                child: Icon(
-                  widget.event['image'] ?? Icons.event,
-                  color: Colors.white,
-                  size: 80,
-                ),
+                child: widget.event.img != null
+                    ? Image.network(
+                        widget.event.img!,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.event,
+                            color: Colors.white,
+                            size: 80,
+                          );
+                        },
+                      )
+                    : const Icon(
+                        Icons.event,
+                        color: Colors.white,
+                        size: 80,
+                      ),
               ),
             ],
           ),
@@ -151,10 +190,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
             decoration: BoxDecoration(
               color: Colors.orange.withOpacity(0.2),
               borderRadius: BorderRadius.circular(15),
-            ),
-            child: Text(
-              widget.event['category'] ?? 'Event',
-              style: const TextStyle(
+            ),                    child: Text(
+                      widget.event.category,
+                      style: const TextStyle(
                 color: Colors.orange,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -163,7 +201,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            widget.event['name'] ?? 'Event Name',
+            widget.event.title,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -202,13 +240,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
           _buildDetailRow(
             Icons.calendar_today,
             'Date & Time',
-            '${widget.event['date'] ?? 'TBD'} at ${widget.event['time'] ?? 'TBD'}',
+            '${_formatDate(widget.event.startTime)} at ${_formatTime(widget.event.startTime)}',
           ),
           Divider(color: Colors.grey[600], height: 24),
           _buildDetailRow(
             Icons.location_on,
             'Venue',
-            widget.event['venue'] ?? 'Event Venue',
+            widget.event.location,
           ),
           Divider(color: Colors.grey[600], height: 24),
           _buildDetailRow(
@@ -281,7 +319,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Join us for an unforgettable experience! This event brings together the best artists, performers, and entertainers for a night you won\'t forget. With state-of-the-art sound systems, stunning visuals, and world-class hospitality, we guarantee an amazing time for all attendees.',
+            widget.event.description,
             style: TextStyle(
               color: Colors.grey[300],
               fontSize: 16,
@@ -293,134 +331,134 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  Widget _buildTicketTypes() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-            'Select Ticket Type',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+  // Helper methods for formatting
+  String _formatDate(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  Widget _buildTicketTypesFromAPI() {
+    return BlocBuilder<TicketCubit, TicketState>(
+      builder: (context, state) {
+        if (state is TicketLoading) {
+          return const Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(
+              child: CircularProgressIndicator(color: Colors.orange),
             ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 220, // Increased height to accommodate content
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: ticketTypes.length,
-            itemBuilder: (context, index) {
-              final ticket = ticketTypes[index];
-              final isSelected = selectedTicketIndex == index;
-              
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedTicketIndex = index;
-                  });
-                },
-                child: Container(
-                  width: 280,
-                  margin: const EdgeInsets.only(right: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.orange.withOpacity(0.2) : Colors.grey[800],
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected ? Colors.orange : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Added to prevent overflow
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              ticket['type'],
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            '\$${ticket['price']}',
-                            style: const TextStyle(
-                              color: Colors.orange,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        ticket['description'],
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 14,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${ticket['available']} tickets available',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Fixed benefits section with proper layout
-                      ...((ticket['benefits'] as List<String>)
-                          .take(3)
-                          .map<Widget>((benefit) => Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
-                                      size: 14,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        benefit,
-                                        style: TextStyle(
-                                          color: Colors.grey[300],
-                                          fontSize: 12,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ))
-                          .toList()),
-                    ],
+          );
+        }
+        
+        if (state is TicketError) {
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load tickets',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 16,
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-      ],
+                const SizedBox(height: 8),
+                Text(
+                  state.message,
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    _ticketCubit.getEventTickets(widget.event.eventId);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        if (state is TicketSuccess) {
+          tickets = state.tickets;
+          if (tickets.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.confirmation_number_outlined,
+                    color: Colors.grey[400],
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No tickets available',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Select Tickets',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: tickets.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final ticket = tickets[index];
+                  return TicketQuantitySelector(
+                    ticket: ticket,
+                    initialQuantity: ticketQuantities[ticket.ticketId] ?? 0,
+                    onQuantityChanged: (quantity) {
+                      _onTicketQuantityChanged(ticket.ticketId, quantity);
+                    },
+                  );
+                },
+              ),
+            ],
+          );
+        }
+        
+        return const SizedBox.shrink();
+      },
     );
   }
 
@@ -607,7 +645,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  widget.event['venue'] ?? 'Event Venue',
+                  widget.event.location,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -636,7 +674,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildBottomBar() {
-    final selectedTicket = ticketTypes[selectedTicketIndex];
+    final hasSelectedTickets = totalTickets > 0;
     
     return Container(
       padding: const EdgeInsets.all(20),
@@ -658,14 +696,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Total Price',
+                  hasSelectedTickets ? '$totalTickets ticket${totalTickets > 1 ? 's' : ''}' : 'No tickets selected',
                   style: TextStyle(
                     color: Colors.grey[400],
                     fontSize: 14,
                   ),
                 ),
                 Text(
-                  '\$${selectedTicket['price']}',
+                  hasSelectedTickets ? '\$${totalAmount.toStringAsFixed(2)}' : '\$0.00',
                   style: const TextStyle(
                     color: Colors.orange,
                     fontSize: 24,
@@ -677,20 +715,20 @@ class _EventDetailPageState extends State<EventDetailPage> {
             const SizedBox(width: 20),
             Expanded(
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: hasSelectedTickets ? () {
                   _showBookingDialog();
-                },
+                } : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: hasSelectedTickets ? Colors.orange : Colors.grey[600],
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
                 ),
-                child: const Text(
-                  'Book Now',
+                child: Text(
+                  hasSelectedTickets ? 'Book Now' : 'Select Tickets',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: hasSelectedTickets ? Colors.white : Colors.grey[400],
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -718,19 +756,60 @@ class _EventDetailPageState extends State<EventDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Event: ${widget.event['name'] ?? 'Event Name'}',
+                'Event: ${widget.event.title}',
                 style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Ticket: ${ticketTypes[selectedTicketIndex]['type']}',
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Price: \$${ticketTypes[selectedTicketIndex]['price']}',
-                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
-              ),
+              if (ticketQuantities.isNotEmpty)
+                ...ticketQuantities.entries.map((entry) {
+                  final ticket = tickets.firstWhere((t) => t.ticketId == entry.key);
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${entry.value}x ${ticket.name}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        Text(
+                          '\$${(ticket.price * entry.value).toStringAsFixed(2)}',
+                          style: const TextStyle(color: Colors.orange),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              if (ticketQuantities.isNotEmpty) ...[
+                const Divider(color: Colors.grey),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total:',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '\$${totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else
+                const Text(
+                  'No tickets selected',
+                  style: TextStyle(color: Colors.grey),
+                ),
             ],
           ),
           actions: [

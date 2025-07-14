@@ -186,6 +186,12 @@ class _AccountPageState extends State<AccountPage> {
                     title: 'Booking History',
                     onTap: _isLoggedIn ? () {} : _showLoginRequiredDialog,
                   ),
+                  _buildDivider(),
+                  _buildMenuItem(
+                    icon: Icons.business_center,
+                    title: 'Switch to Organizer',
+                    onTap: _isLoggedIn ? _navigateToOrganizerDashboard : _showLoginRequiredDialog,
+                  ),
                 ],
               ),
             ),
@@ -339,6 +345,10 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
   
+  void _navigateToOrganizerDashboard() {
+    Navigator.pushNamed(context, '/organizer-dashboard');
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,

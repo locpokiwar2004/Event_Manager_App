@@ -36,3 +36,13 @@ class EventResponse(EventBase):
     class Config:
         from_attributes = True
         json_encoders = {datetime: lambda v: v.isoformat()}
+class OrganizerInfo(BaseModel):
+    UserID: int
+    FullName: str
+    email: str
+    Phone: Optional[str] = None
+    Address: Optional[str] = None
+class EventWithOrganizer(EventResponse):
+    Organizer: OrganizerInfo
+class EventStatusUpdate(BaseModel):
+    Status: EventStatus

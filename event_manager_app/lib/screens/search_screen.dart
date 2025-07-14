@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import './event_detail_page.dart';
+import '../data/models/event_model.dart';
 
 class SearchPage extends StatefulWidget {
   final List<Map<String, dynamic>> allEvents;
@@ -451,10 +452,14 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildEventCard(Map<String, dynamic> event) {
     return GestureDetector(
       onTap: () {
+        // Convert Map to EventEntity using EventModel
+        final eventModel = EventModel.fromJson(event);
+        final eventEntity = eventModel.toEntity();
+        
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => EventDetailPage(event: event),
+            builder: (context) => EventDetailPage(event: eventEntity),
           ),
         );
       },

@@ -1082,7 +1082,6 @@ class _CreateEventTabState extends State<CreateEventTab> {
               _selectedTime = null;
               _selectedCategory = 'Technology';
             });
-            
             // Navigate to My Events tab (index 2)
             if (widget.onTabChanged != null) {
               widget.onTabChanged!(2);

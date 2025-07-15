@@ -114,7 +114,6 @@ async def get_events_by_month(
     # Lấy events và sắp xếp theo StartTime
     events = await db.events.find(filter_query).sort("StartTime", 1).to_list(100)
     return [EventResponse(**event) for event in events]
-
 @router.get("/upcoming", response_model=List[EventResponse])
 async def get_upcoming_events(
     days: int = Query(default=7, ge=1, le=30),
@@ -133,7 +132,6 @@ async def get_upcoming_events(
             "$lte": end_date
         }
     }
-    
     if category:
         filter_query["Category"] = {"$regex": category, "$options": "i"}
     
@@ -158,7 +156,6 @@ async def search_events(
             {"Location": {"$regex": q, "$options": "i"}}
         ]
     }
-    
     if category:
         filter_query["Category"] = {"$regex": category, "$options": "i"}
     
@@ -167,7 +164,6 @@ async def search_events(
     
     if status:
         filter_query["Status"] = status
-    
     events = await db.events.find(filter_query).sort("StartTime", 1).limit(limit).to_list(limit)
     return [EventResponse(**event) for event in events]
 

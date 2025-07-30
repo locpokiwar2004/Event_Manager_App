@@ -34,7 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _pages = [
       _buildHomeScreen(),
       MyTicketPage(),
-      SearchPage(allEvents: []), // Will be updated with real data
+      BlocProvider.value(
+        value: _hotEventsCubit,
+        child: SearchScreen(),
+      ),
       AccountPage(),
     ];
     
@@ -749,6 +752,103 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _showQuickSearchDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[800],
+        title: const Text(
+          'Tìm kiếm nhanh',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Nhập từ khóa tìm kiếm...',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: const Icon(Icons.search, color: Colors.orange),
+                filled: true,
+                fillColor: Colors.grey[700],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onSubmitted: (value) {
+                Navigator.of(context).pop();
+                setState(() {
+                  _currentIndex = 2;
+                });
+                // Pass search query to search screen if needed
+              },
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                'Âm nhạc', 'Công nghệ', 'Ẩm thực', 'Nghệ thuật', 'Thể thao'
+              ].map((category) => GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  setState(() {
+                    _currentIndex = 2;
+                  });
+                  // Pass category filter to search screen if needed
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.orange),
+                  ),
+                  child: Text(
+                    category,
+                    style: const TextStyle(
+                      color: Colors.orange,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              )).toList(),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              setState(() {
+                _currentIndex = 2;
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+            ),
+            child: const Text(
+              'Tìm kiếm',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -771,6 +871,12 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() {
                 _currentIndex = 2;
               });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.filter_list, color: Colors.white),
+            onPressed: () {
+              _showQuickSearchDialog();
             },
           ),
         ],

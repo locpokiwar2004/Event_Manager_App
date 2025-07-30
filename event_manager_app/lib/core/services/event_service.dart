@@ -282,4 +282,215 @@ class EventService {
       };
     }
   }
+
+  // New methods for ticket management and event with tickets update
+
+  static Future<Map<String, dynamic>> getEventWithTickets(String eventId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/$eventId/with-tickets'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Get Event With Tickets Response Status: ${response.statusCode}');
+      print('Get Event With Tickets Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final eventData = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': eventData,
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorData['detail'] ?? 'Failed to load event with tickets'
+        };
+      }
+    } catch (e) {
+      print('Get Event With Tickets Error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}'
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateEventWithTickets(String eventId, Map<String, dynamic> updateData) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/events/$eventId/with-tickets'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(updateData),
+      );
+
+      print('Update Event With Tickets Response Status: ${response.statusCode}');
+      print('Update Event With Tickets Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final eventData = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': eventData,
+          'message': 'Event and tickets updated successfully!'
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorData['detail'] ?? 'Failed to update event with tickets'
+        };
+      }
+    } catch (e) {
+      print('Update Event With Tickets Error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}'
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> getEventTickets(String eventId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/$eventId/tickets'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Get Event Tickets Response Status: ${response.statusCode}');
+      print('Get Event Tickets Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final ticketsData = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': ticketsData,
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorData['detail'] ?? 'Failed to load tickets'
+        };
+      }
+    } catch (e) {
+      print('Get Event Tickets Error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}'
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> createTicket(String eventId, Map<String, dynamic> ticketData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/events/$eventId/tickets'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(ticketData),
+      );
+
+      print('Create Ticket Response Status: ${response.statusCode}');
+      print('Create Ticket Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final ticketResponse = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': ticketResponse,
+          'message': 'Ticket created successfully!'
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorData['detail'] ?? 'Failed to create ticket'
+        };
+      }
+    } catch (e) {
+      print('Create Ticket Error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}'
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateTicket(String ticketId, Map<String, dynamic> ticketData) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/events/tickets/$ticketId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(ticketData),
+      );
+
+      print('Update Ticket Response Status: ${response.statusCode}');
+      print('Update Ticket Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final ticketResponse = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': ticketResponse,
+          'message': 'Ticket updated successfully!'
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorData['detail'] ?? 'Failed to update ticket'
+        };
+      }
+    } catch (e) {
+      print('Update Ticket Error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}'
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteTicket(String ticketId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/events/tickets/$ticketId'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('Delete Ticket Response Status: ${response.statusCode}');
+      print('Delete Ticket Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Ticket deleted successfully!'
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorData['detail'] ?? 'Failed to delete ticket'
+        };
+      }
+    } catch (e) {
+      print('Delete Ticket Error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}'
+      };
+    }
+  }
 }

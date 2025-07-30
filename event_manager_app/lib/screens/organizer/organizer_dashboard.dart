@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:event_manager_app/core/services/event_service.dart';
 import 'package:event_manager_app/core/services/auth_service.dart';
 import 'package:event_manager_app/screens/organizer/create_tickets_screen.dart';
+import 'package:event_manager_app/screens/organizer/edit_event_screen.dart';
 
 class OrganizerDashboard extends StatefulWidget {
   @override
@@ -1378,12 +1379,34 @@ class _ManageEventsTabState extends State<ManageEventsTab> {
                     ),
                   ),
                   child: Text(
-                    'View Details',
+                    'Details',
                     style: TextStyle(color: Colors.orange),
                   ),
                 ),
               ),
               SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    _viewEventTickets(event);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Tickets',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
@@ -1523,7 +1546,135 @@ class _ManageEventsTabState extends State<ManageEventsTab> {
   }
 
   void _editEvent(Map<String, dynamic> event) {
-    _showEditEventDialog(event);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditEventScreen(eventData: event),
+      ),
+    ).then((result) {
+      // If the edit was successful, reload the events list
+      if (result == true) {
+        _loadEvents();
+      }
+    });
+  }
+
+  void _viewEventTickets(Map<String, dynamic> event) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text(
+          'Event Tickets',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Container(
+          width: double.maxFinite,
+          height: 300,
+          child: FutureBuilder(
+            future: EventService.getEventTickets(event['EventID'].toString()),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: CircularProgressIndicator(color: Colors.orange),
+                );
+              }
+              
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error loading tickets: ${snapshot.error}',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+              
+              final result = snapshot.data as Map<String, dynamic>;
+              if (!result['success']) {
+                return Center(
+                  child: Text(
+                    'Failed to load tickets',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+              
+              final tickets = List<Map<String, dynamic>>.from(result['data']);
+              
+              if (tickets.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No tickets found for this event',
+                    style: TextStyle(color: Colors.grey[400]),
+                  ),
+                );
+              }
+              
+              return ListView.builder(
+                itemCount: tickets.length,
+                itemBuilder: (context, index) {
+                  final ticket = tickets[index];
+                  return Card(
+                    color: Colors.grey[800],
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.confirmation_number,
+                        color: Colors.orange,
+                      ),
+                      title: Text(
+                        ticket['TicketType'] ?? 'General',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ticket['Description'] ?? 'No description',
+                            style: TextStyle(color: Colors.grey[400]),
+                          ),
+                          SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                'Price: ',
+                                style: TextStyle(color: Colors.grey[400]),
+                              ),
+                              Text(
+                                '${ticket['Price']} VND',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'Available: ${ticket['QuantityAvailable']}',
+                            style: TextStyle(color: Colors.grey[400]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Close',
+              style: TextStyle(color: Colors.orange),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _deleteEvent(Map<String, dynamic> event) {
@@ -1585,221 +1736,6 @@ class _ManageEventsTabState extends State<ManageEventsTab> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error deleting event: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _showEditEventDialog(Map<String, dynamic> event) {
-    final _editFormKey = GlobalKey<FormState>();
-    final _editTitleController = TextEditingController(text: event['Title']);
-    final _editDescriptionController = TextEditingController(text: event['Description']);
-    final _editLocationController = TextEditingController(text: event['Location']);
-    final _editCapacityController = TextEditingController(text: event['Capacity'].toString());
-    
-    String _editSelectedCategory = event['Category'] ?? 'Technology';
-    DateTime _editSelectedDate = DateTime.parse(event['StartTime']);
-    TimeOfDay _editSelectedTime = TimeOfDay.fromDateTime(_editSelectedDate);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.grey[800],
-              title: Text(
-                'Edit Event',
-                style: TextStyle(color: Colors.white),
-              ),
-              content: Container(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: Form(
-                    key: _editFormKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Title
-                        TextFormField(
-                          controller: _editTitleController,
-                          style: TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Event Title',
-                            labelStyle: TextStyle(color: Colors.orange),
-                            filled: true,
-                            fillColor: Colors.grey[700],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter event title';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        
-                        // Description
-                        TextFormField(
-                          controller: _editDescriptionController,
-                          maxLines: 3,
-                          style: TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Description',
-                            labelStyle: TextStyle(color: Colors.orange),
-                            filled: true,
-                            fillColor: Colors.grey[700],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter description';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        
-                        // Location
-                        TextFormField(
-                          controller: _editLocationController,
-                          style: TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Location',
-                            labelStyle: TextStyle(color: Colors.orange),
-                            filled: true,
-                            fillColor: Colors.grey[700],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter location';
-                            }
-                            return null;
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        
-                        // Capacity
-                        TextFormField(
-                          controller: _editCapacityController,
-                          keyboardType: TextInputType.number,
-                          style: TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'Capacity',
-                            labelStyle: TextStyle(color: Colors.orange),
-                            filled: true,
-                            fillColor: Colors.grey[700],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter capacity';
-                            }
-                            if (int.tryParse(value) == null) {
-                              return 'Please enter valid number';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.grey[400]),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_editFormKey.currentState!.validate()) {
-                      Navigator.of(context).pop();
-                      await _performUpdateEvent(
-                        event['_id'] ?? event['EventID'].toString(),
-                        _editTitleController.text.trim(),
-                        _editDescriptionController.text.trim(),
-                        _editSelectedCategory,
-                        _editLocationController.text.trim(),
-                        _editSelectedDate,
-                        _editSelectedTime,
-                        int.parse(_editCapacityController.text.trim()),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                  ),
-                  child: Text(
-                    'Update',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _performUpdateEvent(
-    String eventId,
-    String title,
-    String description,
-    String category,
-    String location,
-    DateTime date,
-    TimeOfDay time,
-    int capacity,
-  ) async {
-    try {
-      String formattedDate = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      String formattedTime = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-
-      final result = await EventService.updateEvent(
-        eventId: eventId,
-        title: title,
-        description: description,
-        category: category,
-        location: location,
-        date: formattedDate,
-        time: formattedTime,
-        capacity: capacity,
-      );
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message']),
-          backgroundColor: result['success'] ? Colors.green : Colors.red,
-        ),
-      );
-
-      if (result['success']) {
-        _loadEvents(); // Reload events list
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating event: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );

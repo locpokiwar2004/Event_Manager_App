@@ -48,7 +48,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       
       final response = await dioClient.get(
         ApiUrl.hotEvents,
-        queryParameters: queryParams,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
       final List<dynamic> data = response.data;
       return data.map((json) => EventModel.fromJson(json)).toList();
@@ -109,11 +109,15 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     try {
       final Map<String, dynamic> queryParams = {};
       
-      if (query != null) queryParams['q'] = query;
-      if (category != null) queryParams['category'] = category;
-      if (location != null) queryParams['location'] = location;
-      if (dateFrom != null) queryParams['date_from'] = dateFrom.toIso8601String();
-      if (dateTo != null) queryParams['date_to'] = dateTo.toIso8601String();
+      if (query != null && query.isNotEmpty) queryParams['query'] = query;
+      if (category != null && category.isNotEmpty) queryParams['category'] = category;
+      if (location != null && location.isNotEmpty) queryParams['location'] = location;
+      if (dateFrom != null) {
+        queryParams['date_from'] = dateFrom.toIso8601String().split('T')[0]; // YYYY-MM-DD format
+      }
+      if (dateTo != null) {
+        queryParams['date_to'] = dateTo.toIso8601String().split('T')[0]; // YYYY-MM-DD format
+      }
       if (minPrice != null) queryParams['min_price'] = minPrice;
       if (maxPrice != null) queryParams['max_price'] = maxPrice;
       if (limit != null) queryParams['limit'] = limit;

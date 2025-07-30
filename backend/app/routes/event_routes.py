@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from app.config.database import db
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from bson import ObjectId
+import re
 
 router = APIRouter()
 
@@ -101,6 +102,170 @@ async def get_events():
         return events
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch events: {str(e)}")
+
+@router.get("/events/search")
+async def search_events(
+    query: Optional[str] = Query(None, description="Search text for title or description"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    location: Optional[str] = Query(None, description="Filter by location"),
+    date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+    min_price: Optional[float] = Query(None, description="Minimum price"),
+    max_price: Optional[float] = Query(None, description="Maximum price"),
+    limit: Optional[int] = Query(50, description="Maximum number of results"),
+    offset: Optional[int] = Query(0, description="Number of results to skip")
+):
+    """Search events with various filters"""
+    try:
+        # Build MongoDB query
+        mongo_query = {}
+        
+        # Text search in title and description
+        if query and query.strip():
+            mongo_query["$or"] = [
+                {"title": {"$regex": query.strip(), "$options": "i"}},
+                {"description": {"$regex": query.strip(), "$options": "i"}}
+            ]
+        
+        # Category filter
+        if category and category.strip():
+            mongo_query["category"] = {"$regex": f"^{category.strip()}$", "$options": "i"}
+        
+        # Location filter
+        if location and location.strip():
+            mongo_query["location"] = {"$regex": location.strip(), "$options": "i"}
+        
+        # Date range filter
+        if date_from or date_to:
+            date_filter = {}
+            if date_from:
+                try:
+                    from_date = datetime.strptime(date_from, "%Y-%m-%d")
+                    date_filter["$gte"] = from_date
+                except ValueError:
+                    raise HTTPException(status_code=400, detail="Invalid date_from format. Use YYYY-MM-DD")
+            
+            if date_to:
+                try:
+                    to_date = datetime.strptime(date_to, "%Y-%m-%d")
+                    # Add 23:59:59 to include the entire end date
+                    to_date = to_date.replace(hour=23, minute=59, second=59)
+                    date_filter["$lte"] = to_date
+                except ValueError:
+                    raise HTTPException(status_code=400, detail="Invalid date_to format. Use YYYY-MM-DD")
+            
+            mongo_query["date"] = date_filter
+        
+        # Price range filter
+        if min_price is not None or max_price is not None:
+            price_filter = {}
+            if min_price is not None:
+                price_filter["$gte"] = min_price
+            if max_price is not None:
+                price_filter["$lte"] = max_price
+            mongo_query["price"] = price_filter
+        
+        # Execute query with pagination
+        cursor = db.events.find(mongo_query).skip(offset).limit(limit)
+        
+        events = []
+        async for event in cursor:
+            events.append({
+                "id": str(event["_id"]),
+                "title": event["title"],
+                "description": event["description"],
+                "category": event["category"],
+                "location": event["location"],
+                "date": event["date"].strftime("%Y-%m-%d"),
+                "time": event["date"].strftime("%H:%M"),
+                "capacity": event["capacity"],
+                "price": event["price"],
+                "organizer_id": event["organizer_id"],
+                "created_at": event["created_at"]
+            })
+        
+        return events
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to search events: {str(e)}")
+
+@router.get("/events/hot")
+async def get_hot_events(limit: Optional[int] = Query(10, description="Number of hot events to return")):
+    """Get hot/popular events (sorted by creation date for now)"""
+    try:
+        events = []
+        # For now, we'll consider newest events as "hot"
+        # In the future, this could be based on ticket sales, views, etc.
+        cursor = db.events.find().sort("created_at", -1).limit(limit)
+        
+        async for event in cursor:
+            events.append({
+                "id": str(event["_id"]),
+                "title": event["title"],
+                "description": event["description"],
+                "category": event["category"],
+                "location": event["location"],
+                "date": event["date"].strftime("%Y-%m-%d"),
+                "time": event["date"].strftime("%H:%M"),
+                "capacity": event["capacity"],
+                "price": event["price"],
+                "organizer_id": event["organizer_id"],
+                "created_at": event["created_at"]
+            })
+        
+        return events
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch hot events: {str(e)}")
+
+@router.get("/events/monthly")
+async def get_monthly_events(
+    year: int = Query(..., description="Year (e.g., 2024)"),
+    month: int = Query(..., description="Month (1-12)")
+):
+    """Get events for a specific month"""
+    try:
+        # Validate month
+        if month < 1 or month > 12:
+            raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
+        
+        # Create date range for the month
+        from datetime import datetime
+        import calendar
+        
+        start_date = datetime(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_date = datetime(year, month, last_day, 23, 59, 59)
+        
+        # Query events in the date range
+        mongo_query = {
+            "date": {
+                "$gte": start_date,
+                "$lte": end_date
+            }
+        }
+        
+        events = []
+        async for event in db.events.find(mongo_query).sort("date", 1):
+            events.append({
+                "id": str(event["_id"]),
+                "title": event["title"],
+                "description": event["description"],
+                "category": event["category"],
+                "location": event["location"],
+                "date": event["date"].strftime("%Y-%m-%d"),
+                "time": event["date"].strftime("%H:%M"),
+                "capacity": event["capacity"],
+                "price": event["price"],
+                "organizer_id": event["organizer_id"],
+                "created_at": event["created_at"]
+            })
+        
+        return events
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch monthly events: {str(e)}")
 
 @router.get("/events/organizer/{organizer_id}")
 async def get_events_by_organizer(organizer_id: int):
